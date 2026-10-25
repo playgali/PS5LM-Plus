@@ -26,7 +26,24 @@ python3 scripts/test-log-backpressure.py
 
 This host-side regression test blocks a real pipe used as stderr and exercises
 text and JSON logging under both the PS5 queue policy and the native policy.
-It does not emulate the console or replace a complete PS5 build and hardware test.
+It does not emulate the console or replace a complete application build and hardware test.
+The same logger test can also be compiled as a PS5 payload:
+
+```sh
+PS5_PAYLOAD_SDK=/absolute/path/to/ps5-payload-sdk bash scripts/build-log-test-ps5.sh
+```
+
+The build script never launches it. When explicitly run through elfldr, it tests
+text and JSON logging and writes `/data/PS5LM/log-backpressure-test.jsonl`.
+It refuses to overwrite an existing result; archive that file before another run.
+A 20-second watchdog exits the test payload if the logger fails to recover.
+The payload neither loads a model nor changes the running application or fan.
+The PR was checked with official payload SDK v0.45 and LLVM 23.1.4.
+On-console text and JSON cases completed with exit code 0; Plus remained healthy.
+This validates the logger component on PS5, not a rebuilt graphical application.
+
+The `Log reliability` GitHub Actions workflow repeats the host test on Linux and
+macOS and cross-compiles the PS5 test using a hash-verified SDK.
 
 For console validation, use one client, check `/slots` is idle before starting,
 and record request success, generation throughput, `/health`, `/slots`, and

@@ -9,8 +9,7 @@
 bool tty_enable_ansi() { return false; }
 bool tty_can_use_colors() { return false; }
 extern "C" void ggml_abort(const char *, int, const char *, ...) { std::abort(); }
-int main(int argc, char **) {
-    const bool json = argc > 1;
+int run_log_backpressure_test(bool json) {
     int sink[2];
     if (pipe(sink)) return 2;
     const int saved = dup(STDERR_FILENO);
@@ -65,3 +64,9 @@ int main(int argc, char **) {
               << " producer_completed_while_sink_blocked=" << completed << '\n';
     return pass ? 0 : 1;
 }
+
+#ifndef PS5LM_LOG_TEST_NO_MAIN
+int main(int argc, char **) {
+    return run_log_backpressure_test(argc > 1);
+}
+#endif
