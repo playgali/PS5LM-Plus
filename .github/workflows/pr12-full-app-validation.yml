@@ -1,0 +1,77 @@
+name: PR12 full application validation
+on:
+  push:
+    branches: [ci/pr12-full-app]
+permissions:
+  contents: read
+jobs:
+  full-app:
+    runs-on: ubuntu-24.04
+    container: archlinux:base-devel
+    timeout-minutes: 120
+    env:
+      LLVM_CONFIG: /usr/bin/llvm-config
+    steps:
+      - name: Install documented native build tools
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --needed --noconfirm git clang llvm lld compiler-rt cmake ninja meson glslang python-mako python-yaml python-packaging python-setuptools spirv-tools spirv-headers spirv-llvm-translator libclc vulkan-headers shaderc imagemagick ffmpeg rsync libxml2 elfutils xxd python-numpy python-fonttools python-brotli librsvg wget unzip zip curl bison flex libdrm rust cbindgen
+      - uses: actions/checkout@v4
+      - name: Fetch pinned sources and same-commit UI mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git config submodule.third_party/ps5-homebrew-ui.url https://github.com/Phononenom/ps5-homebrew-ui
+          git submodule update --init --depth 1
+          mkdir -p .deps/src
+          for spec in 'PS5_Vulkan f410e67a0241b3e8edcdbcd2a9b285dfc4a412ed' 'PS5_Mesa 1ba9874f478657ccf6da72ce55f0260164cc0bd0' 'PS5_PayloadSDK b83202be73e930050e00de0f1b4d9ec46c0391bf'; do
+            read -r name revision <<< "$spec"
+            git init ".deps/src/$name"
+            git -C ".deps/src/$name" remote add origin "https://github.com/mihawk-99/$name"
+            git -C ".deps/src/$name" fetch --depth 1 origin "$revision"
+            git -C ".deps/src/$name" checkout --detach FETCH_HEAD
+          done
+      - name: Fetch and verify recovered OpenGL SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cache=third_party/ps5-homebrew-ui/.deps/ps5-opengl
+          mkdir -p "$cache"
+          curl -fL --retry 3 -o "$cache/ps5-opengl-sdk-1.0.0.tar.gz" https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz
+          echo "f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5  $cache/ps5-opengl-sdk-1.0.0.tar.gz" | sha256sum -c -
+          bash third_party/ps5-homebrew-ui/tools/fetch-opengl-sdk.sh
+          echo "PS5_OPENGL_SDK=$GITHUB_WORKSPACE/$cache/ps5-opengl-sdk-1.0.0/sdk" >> "$GITHUB_ENV"
+      - name: Build pinned SDK and RADV
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .deps/src/PS5_Vulkan
+          bash tools/setup-native-dependencies.sh
+          bash tools/build-radv.sh release
+      - name: Rebuild clean-room runtime and host converter
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .deps/src/PS5_Vulkan
+          make libc
+          mkdir -p build/host
+          cp build/runtime-shim/ps5-native-tool build/host/ps5-native-tool
+      - name: Build and package Plus application
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/build-app.sh
+          bash scripts/release-app.sh
+          find build/release -maxdepth 1 -type f -name '*.zip' -exec sha256sum {} \;
+      - name: Save build artifact and dependency provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr12-full-app-validation
+          if-no-files-found: warn
+          path: |
+            build/release/
+            build/*.log
+            .deps/src/PS5_Vulkan/.deps/work/*.log
+            .deps/src/PS5_Vulkan/.deps/native/radv-release/PROVENANCE.txt
