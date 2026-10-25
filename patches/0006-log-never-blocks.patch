@@ -3,8 +3,10 @@
 # Keep inference producers moving when stdout or the log file stalls on PS5.
 # Other platforms retain llama.cpp's existing blocking queue behavior.
 
+# Also reserve capacity for the shutdown marker so a full queue cannot look empty.
+
 diff --git a/common/log.cpp b/common/log.cpp
-index 25f12684e..51b3d28fd 100644
+index 25f12684e..3a4379011 100644
 --- a/common/log.cpp
 +++ b/common/log.cpp
 @@ -204,6 +204,10 @@ private:
@@ -79,3 +81,26 @@ index 25f12684e..51b3d28fd 100644
                  if (stop) {
                      break;
                  }
+@@ -367,7 +407,7 @@ public:
+ 
+     void pause() {
+         {
+-            std::lock_guard<std::mutex> lock(mtx);
++            std::unique_lock<std::mutex> lock(mtx);
+ 
+             if (!running) {
+                 return;
+@@ -375,6 +415,13 @@ public:
+ 
+             running = false;
+ 
++#if defined(__PROSPERO__)
++            // The stop marker needs a free slot too. Wrapping tail onto head
++            // in a full queue makes it look empty before the worker wakes.
++            // Producers now see !running and cannot take the freed slot.
++            cv_full.wait(lock, [this]() { return !is_full(); });
++#endif
++
+             // push an entry to signal the worker thread to stop
+             auto & entry = queue[tail];
+             entry.is_end = true;

@@ -28,6 +28,7 @@ for f in "$archive" "$tool" "$vk/runtime/libc.prx" "$sdk/bin/prospero-lld" "$gls
     [ -e "$f" ] || { echo "build-app: missing $f" >&2; exit 2; }
 done
 export PS5_PAYLOAD_SDK="$sdk" PS5_VULKAN_ROOT="$vk"
+mkdir -p "$out"
 
 # radv-link.sh takes Clang's builtins from <resource dir>/lib/linux/, where
 # Debian and Arch put them; Fedora keeps them under the target triple. A clang

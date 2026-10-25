@@ -61,12 +61,17 @@ int run_log_backpressure_test(bool json) {
         && captured.find("999") != std::string::npos;
 #endif
     std::cout << (pass ? "PASS" : "FAIL") << (json ? " JSON" : " text")
-              << " producer_completed_while_sink_blocked=" << completed << '\n';
+              << " producer_completed_while_sink_blocked=" << completed << std::endl;
     return pass ? 0 : 1;
 }
 
 #ifndef PS5LM_LOG_TEST_NO_MAIN
-int main(int argc, char **) {
-    return run_log_backpressure_test(argc > 1);
+int main(int argc, char ** argv) {
+    const bool json = argc > 1 && std::string(argv[1]) == "json";
+    const int count = (argc > 1 && std::string(argv[argc - 1]) == "repeat") ? 50 : 1;
+    for (int i = 0; i < count; ++i) {
+        if (run_log_backpressure_test(json) != 0) return 1;
+    }
+    return 0;
 }
 #endif
