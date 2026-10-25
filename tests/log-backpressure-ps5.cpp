@@ -22,11 +22,13 @@ int main() {
             std::_Exit(124);
         }
     });
-    int text = run_log_backpressure_test(false);
-    fprintf(result, "{\"stage\":\"text\",\"exit_code\":%d}\n", text);
+    int text = 0, text_count = 0;
+    for (; text_count < 25 && text == 0; ++text_count) text = run_log_backpressure_test(false);
+    fprintf(result, "{\"stage\":\"text\",\"iterations\":%d,\"exit_code\":%d}\n", text_count, text);
     fflush(result); fsync(fileno(result));
-    int json = run_log_backpressure_test(true);
-    fprintf(result, "{\"stage\":\"json\",\"exit_code\":%d}\n", json);
+    int json = 0, json_count = 0;
+    for (; json_count < 25 && json == 0; ++json_count) json = run_log_backpressure_test(true);
+    fprintf(result, "{\"stage\":\"json\",\"iterations\":%d,\"exit_code\":%d}\n", json_count, json);
     fprintf(result, "{\"stage\":\"complete\",\"ok\":%s}\n", text == 0 && json == 0 ? "true" : "false");
     fflush(result); fsync(fileno(result));
     { std::lock_guard<std::mutex> lock(m); done = true; }

@@ -153,6 +153,8 @@ For log backpressure behavior and bounded validation, see [Reliability](docs/REL
 
 ## Building the app
 
+For the recovered UI/OpenGL dependency downloads, see [fresh application builds](docs/RELIABILITY.md#fresh-application-builds).
+
 The app links llama.cpp with ggml-vulkan against [PS5_Vulkan](https://github.com/mihawk-99/PS5_Vulkan)'s RADV build. Set up PS5_Vulkan and its forks in `.deps/src` (`PS5_Vulkan`, `PS5_Mesa` and `PS5_PayloadSDK` at the revisions PS5_Vulkan pins), then:
 
 ```sh

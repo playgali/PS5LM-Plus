@@ -22,7 +22,6 @@ jobs:
         run: |
           set -euo pipefail
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          git config submodule.third_party/ps5-homebrew-ui.url https://github.com/Phononenom/ps5-homebrew-ui
           git submodule update --init --depth 1
           mkdir -p .deps/src
           for spec in 'PS5_Vulkan f410e67a0241b3e8edcdbcd2a9b285dfc4a412ed' 'PS5_Mesa 1ba9874f478657ccf6da72ce55f0260164cc0bd0' 'PS5_PayloadSDK b83202be73e930050e00de0f1b4d9ec46c0391bf'; do
