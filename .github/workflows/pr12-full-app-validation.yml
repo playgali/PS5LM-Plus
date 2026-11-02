@@ -31,14 +31,17 @@ jobs:
             git -C ".deps/src/$name" fetch --depth 1 origin "$revision"
             git -C ".deps/src/$name" checkout --detach FETCH_HEAD
           done
+      - name: Verify fractional JSON parser regression and negative control
+        run: python3 tests/locale_json_regression.py
       - name: Fetch and verify recovered OpenGL SDK
         shell: bash
         run: |
           set -euo pipefail
           cache=third_party/ps5-homebrew-ui/.deps/ps5-opengl
           mkdir -p "$cache"
-          curl -fL --retry 3 -o "$cache/ps5-opengl-sdk-1.0.0.tar.gz" https://github.com/MyLuxy/overdrive-deps/releases/download/ps5-opengl-v1.0.0/ps5-opengl-sdk-1.0.0.tar.gz
-          echo "f93643c04c843d56143b00951df1f8042ea7706ae9f19e4e9abf158e1ead77c5  $cache/ps5-opengl-sdk-1.0.0.tar.gz" | sha256sum -c -
+          curl -fL --retry 3 -o "$cache/ps5-opengl-sdk-1.0.0.tar.gz" https://github.com/cobanov/PS5LM/releases/download/deps-ps5-opengl-1.0.0/ps5-opengl-sdk-1.0.0.tar.gz
+          echo "a3ce70a1d3278a2367c3135f034d4925dc85cc4bda30916f44aa474d37241053  $cache/ps5-opengl-sdk-1.0.0.tar.gz" | sha256sum -c -
+          tar -xzf "$cache/ps5-opengl-sdk-1.0.0.tar.gz" -C "$cache"
           bash third_party/ps5-homebrew-ui/tools/fetch-opengl-sdk.sh
           echo "PS5_OPENGL_SDK=$GITHUB_WORKSPACE/$cache/ps5-opengl-sdk-1.0.0/sdk" >> "$GITHUB_ENV"
       - name: Build pinned SDK and RADV
